@@ -1,0 +1,4 @@
+/mnt/c/Users/Lol/Desktop/proga/new/paral/lab1/build/CMakeFiles/main.dir
+/mnt/c/Users/Lol/Desktop/proga/new/paral/lab1/build/CMakeFiles/run.dir
+/mnt/c/Users/Lol/Desktop/proga/new/paral/lab1/build/CMakeFiles/edit_cache.dir
+/mnt/c/Users/Lol/Desktop/proga/new/paral/lab1/build/CMakeFiles/rebuild_cache.dir
