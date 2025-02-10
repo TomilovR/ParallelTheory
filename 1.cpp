@@ -8,9 +8,6 @@ T computeSum()
 {
     T* mas = new T[N];
 
-    const T period = 2.0 * M_PI;
-    const T step = period / N;
-
     for (int i = 0; i < N; i++)
     {
         mas[i] = sin(2.0 * M_PI * i / N);
