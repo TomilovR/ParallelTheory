@@ -1,1 +1,1 @@
-# ConcurrencyTheory
+# ParallelTheory
