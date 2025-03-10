@@ -147,9 +147,7 @@ double* solve(double *matrix, double *b, double tau, double eps, int n, int thre
                 x[i] = x[i] - tau * temp_res[i];
             }
             free(temp);
-
-            temp = matrix_vector_product(matrix, x, n);
-
+            
             if (crit(temp_res, b, eps, n))
                 break;
         }
