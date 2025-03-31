@@ -6,7 +6,6 @@ import argparse
 import logging
 import os
 
-# Настройка логирования
 LOG_DIR = os.path.join(os.getcwd(), "log")
 os.makedirs(LOG_DIR, exist_ok=True)
 logging.basicConfig(
