@@ -36,14 +36,9 @@ class SensorCam(Sensor):
             logging.error("Invalid resolution format: %s", resolution)
             raise
 
-        try:
-            cam_index = int(cam_name)
-        except ValueError:
-            cam_index = cam_name
-
-        self.cap = cv2.VideoCapture(cam_index)
+        self.cap = cv2.VideoCapture(int(cam_name))
         if not self.cap.isOpened():
-            logging.error("Camera with name/index %s not found or cannot be opened.", cam_name)
+            logging.error("Camera with name %s not found or cannot be opened.", cam_name)
             raise RuntimeError(f"Camera {cam_name} not found")
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
@@ -80,17 +75,27 @@ def sensor_worker(sensor, sensor_queue, stop_event):
         except Exception as e:
             logging.error("Error reading from sensor: %s", e)
 
+def camera_worker(sensor_cam, frame_queue, stop_event):
+    while not stop_event.is_set():
+        try:
+            frame = sensor_cam.get()
+            if frame is not None:
+                if not frame_queue.full():
+                    frame_queue.put(frame)
+        except Exception as e:
+            logging.error("Error in camera worker: %s", e)
+
 def main():
     parser = argparse.ArgumentParser(description="Run sensor reading and data display")
     parser.add_argument("--cam", type=str, required=True, help="Camera name in the system")
     parser.add_argument("--res", type=str, required=True, help="Desired camera resolution, e.g., 1280x720")
-    parser.add_argument("--display_rate", type=float, required=True, help="Display update rate")
+    parser.add_argument("--display_rate", type=float, required=True, help="Display window refresh rate")
     args = parser.parse_args()
 
     try:
         sensor_cam = SensorCam(args.cam, args.res)
     except Exception as e:
-        logging.error("SensorCam initialization error: %s", e)
+        logging.error("Error initializing SensorCam: %s", e)
         return
 
     sensor0 = SensorX(0.01)
@@ -100,6 +105,7 @@ def main():
     queue0 = queue.Queue()
     queue1 = queue.Queue()
     queue2 = queue.Queue()
+    frame_queue = queue.Queue(maxsize=1)
 
     stop_event = threading.Event()
 
@@ -110,15 +116,21 @@ def main():
         t.start()
         threads.append(t)
 
+    camera_thread = threading.Thread(target=camera_worker, args=(sensor_cam, frame_queue, stop_event))
+    camera_thread.daemon = True
+    camera_thread.start()
+    threads.append(camera_thread)
+
     window = WindowImage(args.display_rate)
 
     last_val0 = last_val1 = last_val2 = None
 
     try:
         while True:
-            frame = sensor_cam.get()
-            if frame is None:
-                logging.warning("Empty frame from camera, skipping frame update")
+            try:
+                frame = frame_queue.get(timeout=1)
+            except queue.Empty:
+                logging.warning("No frame available in queue, skipping image update")
                 continue
 
             try:
@@ -136,7 +148,6 @@ def main():
                     last_val2 = queue2.get_nowait()
             except queue.Empty:
                 pass
-
 
             text = f"SensorX0: {last_val0} | SensorX1: {last_val1} | SensorX2: {last_val2}"
             cv2.putText(frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
