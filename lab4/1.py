@@ -124,14 +124,18 @@ def main():
     window = WindowImage(args.display_rate)
 
     last_val0 = last_val1 = last_val2 = None
+    last_frame = None
 
     try:
         while True:
             try:
-                frame = frame_queue.get(timeout=1)
+                frame = frame_queue.get_nowait()
+                last_frame = frame
             except queue.Empty:
-                logging.warning("No frame available in queue, skipping image update")
-                continue
+                frame = last_frame
+
+            if frame is None:
+                continue 
 
             try:
                 while True:
