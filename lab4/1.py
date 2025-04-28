@@ -80,8 +80,12 @@ def camera_worker(sensor_cam, frame_queue, stop_event):
         try:
             frame = sensor_cam.get()
             if frame is not None:
-                if not frame_queue.full():
-                    frame_queue.put(frame)
+                while not frame_queue.empty():
+                    try:
+                        frame_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                frame_queue.put(frame)
         except Exception as e:
             logging.error("Error in camera worker: %s", e)
 
@@ -126,48 +130,45 @@ def main():
     last_val0 = last_val1 = last_val2 = None
     last_frame = None
 
-    try:
-        while True:
-            try:
-                frame = frame_queue.get_nowait()
-                last_frame = frame
-            except queue.Empty:
-                frame = last_frame
+try:
+    while True:
+        try:
+            while True:
+                last_frame = frame_queue.get_nowait()
+        except queue.Empty:
+            pass
 
-            if frame is None:
-                continue 
+        try:
+            while True:
+                last_val0 = queue0.get_nowait()
+        except queue.Empty:
+            pass
+        try:
+            while True:
+                last_val1 = queue1.get_nowait()
+        except queue.Empty:
+            pass
+        try:
+            while True:
+                last_val2 = queue2.get_nowait()
+        except queue.Empty:
+            pass
 
-            try:
-                while True:
-                    last_val0 = queue0.get_nowait()
-            except queue.Empty:
-                pass
-            try:
-                while True:
-                    last_val1 = queue1.get_nowait()
-            except queue.Empty:
-                pass
-            try:
-                while True:
-                    last_val2 = queue2.get_nowait()
-            except queue.Empty:
-                pass
-
+        if last_frame is not None:
             text = f"SensorX0: {last_val0} | SensorX1: {last_val1} | SensorX2: {last_val2}"
-            cv2.putText(frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
+            cv2.putText(last_frame, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 
                         0.8, (0, 255, 0), 2)
+            window.show(last_frame)
 
-            window.show(frame)
-
-            if cv2.waitKey(int(1000/args.display_rate)) & 0xFF == ord('q'):
-                break
-    except Exception as e:
-        logging.error("Error in main loop: %s", e)
-    finally:
-        stop_event.set()
-        for t in threads:
-            t.join(timeout=1)
-        del window
+        if cv2.waitKey(int(1000/args.display_rate)) & 0xFF == ord('q'):
+            break
+except Exception as e:
+    logging.error("Error in main loop: %s", e)
+finally:
+    stop_event.set()
+    for t in threads:
+        t.join(timeout=1)
+    del window
 
 if __name__ == '__main__':
     main()
