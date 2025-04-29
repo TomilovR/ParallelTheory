@@ -75,21 +75,24 @@ def sensor_worker(sensor, sensor_queue, stop_event):
         except Exception as e:
             logging.error("Error reading from sensor: %s", e)
 
-def camera_worker(sensor_cam, frame_queue, stop_event):
+def camera_worker(sensor_cam, frame_queue, stop_event, frame_lock):
     while not stop_event.is_set():
         try:
             frame = sensor_cam.get()
             if frame is not None:
-                while not frame_queue.empty():
-                    try:
-                        frame_queue.get_nowait()
-                    except queue.Empty:
-                        break
-                frame_queue.put(frame)
+                with frame_lock:
+                    while not frame_queue.empty():
+                        try:
+                            frame_queue.get_nowait()
+                        except queue.Empty:
+                            break
+                    frame_queue.put(frame)
         except Exception as e:
             logging.error("Error in camera worker: %s", e)
 
 def main():
+    frame_lock = threading.Lock()
+    
     parser = argparse.ArgumentParser(description="Run sensor reading and data display")
     parser.add_argument("--cam", type=str, required=True, help="Camera name in the system")
     parser.add_argument("--res", type=str, required=True, help="Desired camera resolution, e.g., 1280x720")
@@ -120,7 +123,7 @@ def main():
         t.start()
         threads.append(t)
 
-    camera_thread = threading.Thread(target=camera_worker, args=(sensor_cam, frame_queue, stop_event))
+    camera_thread = threading.Thread(target=camera_worker, args=(sensor_cam, frame_queue, stop_event, frame_lock))
     camera_thread.daemon = True
     camera_thread.start()
     threads.append(camera_thread)
@@ -132,11 +135,11 @@ def main():
 
 try:
     while True:
-        try:
-            while True:
+        with frame_lock:
+            try:
                 last_frame = frame_queue.get_nowait()
-        except queue.Empty:
-            pass
+            except queue.Empty:
+                pass
 
         try:
             while True:
