@@ -38,13 +38,7 @@ class VideoProcessor:
     def __del__(self):
         if hasattr(self, 'video_writer'):
             self.video_writer.release()
-    
-    def process_frame(self, frame):
-        model = YOLO(self.model_path)
-        results = model(frame)
-        annotated_frame = results[0].plot()
-        return annotated_frame
-    
+        
     def worker(self):
         model = YOLO(self.model_path)
     
