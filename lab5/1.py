@@ -44,7 +44,7 @@ class VideoProcessor:
     
         while True:
             try:
-                frame_number, frame = self.input_queue.get(timeout=5)
+                frame_number, frame = self.input_queue.get()
                 if frame is None:
                     break
             
