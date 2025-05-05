@@ -92,23 +92,10 @@ int main(int argc, char* argv[]) {
     int size;
     double accuracy;
     int max_iterations;
-
-    po::options_description desc("Параметры программы");
-    desc.add_options()
-        ("help", "показать описание параметров")
-        ("size", po::value<int>(&size)->default_value(256), "размер сетки (NxN)")
-        ("accuracy", po::value<double>(&accuracy)->default_value(1e-6), "требуемая точность")
-        ("max_iterations", po::value<int>(&max_iterations)->default_value(1000000), "максимальное количество итераций");
-
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
     
-    if (vm.count("help")) {
-        std::cout << desc << "\n";
-        return 1;
-    }
-
     std::cout << "Запуск программы (GPU версия)!\n";
     std::cout << "Размер сетки: " << size << "x" << size << "\n";
     std::cout << "Точность: " << accuracy << "\n";
